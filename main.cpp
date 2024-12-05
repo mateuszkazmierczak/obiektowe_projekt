@@ -1,3 +1,9 @@
+#include <QApplication>
+#include <QWidget>
+#include <QVBoxLayout>
+#include <QPushButton>
+#include <QListWidget>
+#include <QMessageBox>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -24,103 +30,57 @@ public:
     void szukajOsobe() {
         cout << "Szukaj osoby." << endl;
     }
-
-    void dodajOsobe() {
-        cout << "Dodaj osobę." << endl;
-    }
-
-    void usunOsobe() {
-        cout << "Usuń osobę." << endl;
-    }
-
-    void edytujOsobe() {
-        cout << "Edytuj dane osoby." << endl;
-    }
-};
-
-
-class Kierowca : public Osoba {
-public:
-    string numerPrawaJazdy;
-    time_t dataUzyskaniaPrawka;
-
-    void edytujKierowce() {
-        cout << "Edytuj dane kierowcy." << endl;
-    }
 };
 
 class Samochod {
 public:
     string marka;
     string model;
-    int rocznik;
-    int przebieg;
-    string vin;
-    string rejestracja;
+    int rokProdukcji;
 
-    void szukajSamochod() {
-        cout << "Szukaj samochodu." << endl;
-    }
-
-    void dodajSamochod() {
-        cout << "Dodaj samochód." << endl;
-    }
-
-    void usunSamochod() {
-        cout << "Usuń samochód." << endl;
-    }
-
-    void edytujSamochod() {
-        cout << "Edytuj dane samochodu." << endl;
-    }
+    Samochod(string m, string mo, int r) : marka(m), model(mo), rokProdukcji(r) {}
 };
 
-class Wypozyczenia {
+class MainWindow : public QWidget {
 public:
-    time_t start;
-    time_t koniec;
-    bool dodatkoweUbezpieczenie;
+    MainWindow(QWidget *parent = nullptr) : QWidget(parent) {
+        QVBoxLayout *layout = new QVBoxLayout(this);
 
-    void rozpocznijWypozyczenie() {
-        cout << "Rozpoczęcie wypożyczenia." << endl;
-    }
+        QListWidget *carList = new QListWidget(this);
+        QPushButton *rentButton = new QPushButton("Wypożycz", this);
 
-    void zakonczWypozyczenie() {
-        cout << "Zakończenie wypożyczenia." << endl;
-    }
+        vector<Samochod> samochody = {
+            Samochod("Toyota", "Corolla", 2020),
+            Samochod("Honda", "Civic", 2019),
+            Samochod("Ford", "Focus", 2018)
+        };
 
-    void edytujWypozyczenie() {
-        cout << "Edytuj wypożyczenie." << endl;
+        for (const auto &samochod : samochody) {
+            carList->addItem(QString::fromStdString(samochod.marka + " " + samochod.model + " (" + to_string(samochod.rokProdukcji) + ")"));
+        }
+
+        layout->addWidget(carList);
+        layout->addWidget(rentButton);
+
+        connect(rentButton, &QPushButton::clicked, [carList]() {
+            QListWidgetItem *selectedItem = carList->currentItem();
+            if (selectedItem) {
+                QMessageBox::information(nullptr, "Wypożyczono", "Wypożyczono samochód: " + selectedItem->text());
+            } else {
+                QMessageBox::warning(nullptr, "Błąd", "Nie wybrano samochodu.");
+            }
+        });
+
+        setLayout(layout);
+        setWindowTitle("Wypożyczalnia Samochodów");
     }
 };
 
-int main() {
-    Wypozyczalnia wyp;
-    wyp.nazwa = "Wypożyczalnia A";
-    wyp.adres = "Warszawa, ul. Prosta 1";
-    wyp.edytujWypozyczalnie();
+int main(int argc, char *argv[]) {
+    QApplication app(argc, argv);
 
-    Osoba osoba;
-    osoba.imie = "Jan";
-    osoba.nazwisko = "Kowalski";
-    osoba.szukajOsobe();
+    MainWindow window;
+    window.show();
 
-    Kierowca kierowca;
-    kierowca.imie = "Anna";
-    kierowca.nazwisko = "Nowak";
-    kierowca.numerPrawaJazdy = "XYZ123456";
-    kierowca.edytujKierowce();
-
-    Samochod samochod;
-    samochod.marka = "Toyota";
-    samochod.model = "Corolla";
-    samochod.rocznik = 2020;
-    samochod.rejestracja = "WX12345";
-    samochod.edytujSamochod();
-
-    Wypozyczenia wypozyczenie;
-    wypozyczenie.dodatkoweUbezpieczenie = true;
-    wypozyczenie.rozpocznijWypozyczenie();
-
-    return 0;
+    return app.exec();
 }
