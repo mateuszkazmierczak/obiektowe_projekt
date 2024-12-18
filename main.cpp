@@ -175,14 +175,34 @@ public:
     }
 };
 
+class Wypozyczalnia {
+public:
+    QString nazwa;
+    QString adres;
+
+    Wypozyczalnia(QString n, QString a) : nazwa(n), adres(a) {}
+
+    void edytujWypozyczalnie() {
+        QString newNazwa = QInputDialog::getText(nullptr, "Edytuj wypożyczalnię", "Nowa nazwa:", QLineEdit::Normal, nazwa);
+        QString newAdres = QInputDialog::getText(nullptr, "Edytuj wypożyczalnię", "Nowy adres:", QLineEdit::Normal, adres);
+        if (!newNazwa.isEmpty() && !newAdres.isEmpty()) {
+            nazwa = newNazwa;
+            adres = newAdres;
+            QMessageBox::information(nullptr, "Edytuj wypożyczalnię", "Dane wypożyczalni zostały zaktualizowane.");
+        }
+    }
+};
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr) : QMainWindow(parent) {
+    MainWindow(QWidget *parent = nullptr) : QMainWindow(parent), wypozyczalnia("Domyślna Wypożyczalnia", "Domyślny Adres") {
         QVBoxLayout *layout = new QVBoxLayout;
 
-        //person list widgets
+        setWindowTitle(wypozyczalnia.nazwa + " - " + wypozyczalnia.adres);
+
+        // person list widgets
         personListWidget = new QListWidget(this);
         layout->addWidget(personListWidget);
 
@@ -202,7 +222,7 @@ public:
         layout->addWidget(deletePersonButton);
         connect(deletePersonButton, &QPushButton::clicked, this, &MainWindow::on_deletePersonButton_clicked);
 
-        //car list widgets
+        // car list widgets
         carListWidget = new QListWidget(this);
         layout->addWidget(carListWidget);
 
@@ -222,7 +242,7 @@ public:
         layout->addWidget(deleteCarButton);
         connect(deleteCarButton, &QPushButton::clicked, this, &MainWindow::on_deleteCarButton_clicked);
 
-        //return and rent buttons
+        // rental and return buttons
 
         QPushButton *rentButton = new QPushButton("Wypożycz", this);
         layout->addWidget(rentButton);
@@ -232,25 +252,11 @@ public:
         layout->addWidget(returnButton);
         connect(returnButton, &QPushButton::clicked, this, &MainWindow::on_returnButton_clicked);
 
-        // vector<Samochod> samochody = {
-        //     Samochod("Toyota", "Corolla", 2020, 180000, "gjrnel433", "KR12345"),
-        //     Samochod("Honda", "Civic", 2019, 10000, "gd3333333", "PO12345"),
-        //     Samochod("Ford", "Focus", 2018, 20000, "123456789", "KR12345"),
-        // };
+        // Edit Rental Button
 
-        // for (const auto &samochod : samochody) {
-        //     carListWidget->addItem(QString("%1 %2 (%3) (%4) %5 %6")
-        //         .arg(QString::fromStdString(samochod.marka))
-        //         .arg(QString::fromStdString(samochod.model))
-        //         .arg(samochod.rokProdukcji)
-        //         .arg(samochod.przebieg)
-        //         .arg(QString::fromStdString(samochod.vin))
-        //         .arg(QString::fromStdString(samochod.rejestracja)));
-        // }
-
-        for (const auto &samochod : samochody) {
-            carListWidget->addItem(carToString(samochod));
-        }
+        QPushButton *editRentalButton = new QPushButton("Edytuj wypożyczalnię", this);
+        layout->addWidget(editRentalButton);
+        connect(editRentalButton, &QPushButton::clicked, this, &MainWindow::on_editRentalButton_clicked);
 
         QWidget *container = new QWidget;
         container->setLayout(layout);
@@ -260,7 +266,7 @@ public:
     }
 
 private slots:
-//Person slots
+    // Person slots
     void on_addPersonButton_clicked() {
         Osoba::dodajOsobe(osoby);
         updatePersonList();
@@ -295,7 +301,7 @@ private slots:
         osoby[personIndex].usunOsobe(osoby);
         updatePersonList();
     }
-    //car slots
+    // Car slots
     void on_addCarButton_clicked() {
         Samochod::dodajSamochod(samochody);
         updateCarList();
@@ -330,7 +336,7 @@ private slots:
         samochody[carIndex].usunSamochod(samochody);
         updateCarList();
     }
-    //retn  buttons
+    // Rent and return buttons
 
     void on_rentButton_clicked() {
         QListWidgetItem *selectedCarItem = carListWidget->currentItem();
@@ -368,7 +374,6 @@ private slots:
         rentedCars.insert(carDetails);
 
         // Gray out the rented car
-        // selectedCarItem->setFlags(selectedCarItem->flags() & ~Qt::ItemIsEnabled);
         selectedCarItem->setBackground(Qt::lightGray);
 
         QMessageBox::information(this, tr("Wynajem samochodu"), tr("Wynajęto samochód dla: %1\nSamochód: %2")
@@ -392,10 +397,14 @@ private slots:
         rentedCars.erase(carDetails);
 
         // Enable the returned car
-        // selectedCarItem->setFlags(selectedCarItem->flags() | Qt::ItemIsEnabled);
         selectedCarItem->setBackground(Qt::transparent);
 
         QMessageBox::information(this, tr("Zwrot samochodu"), tr("Zwrócono samochód: %1").arg(carDetails));
+    }
+
+    void on_editRentalButton_clicked() {
+        wypozyczalnia.edytujWypozyczalnie();
+        setWindowTitle(wypozyczalnia.nazwa + " - " + wypozyczalnia.adres);
     }
 
 private:
@@ -404,6 +413,7 @@ private:
     vector<Osoba> osoby;
     vector<Samochod> samochody;
     unordered_set<QString> rentedCars;
+    Wypozyczalnia wypozyczalnia;
 
     void updatePersonList() {
         personListWidget->clear();
@@ -417,7 +427,6 @@ private:
         for (const auto &samochod : samochody) {
             QListWidgetItem *item = new QListWidgetItem(carToString(samochod), carListWidget);
             if (rentedCars.find(item->text()) != rentedCars.end()) {
-                item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
                 item->setBackground(Qt::lightGray);
             }
         }
@@ -432,15 +441,12 @@ private:
             .arg(QString::fromStdString(samochod.vin))
             .arg(QString::fromStdString(samochod.rejestracja));
     }
-
 };
-
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
     MainWindow mainWindow;
-    mainWindow.setWindowTitle("Wypożyczalnia Samochodów");
     mainWindow.resize(400, 500);
     mainWindow.show();
 
