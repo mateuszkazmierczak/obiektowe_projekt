@@ -104,6 +104,75 @@ public:
     string rejestracja;
 
     Samochod(string m, string mo, int r, int p, string v, string re) : marka(m), model(mo), rokProdukcji(r), przebieg(p), vin(v), rejestracja(re) {}
+
+    void edytujSamochod() {
+        QString newMarka = QInputDialog::getText(nullptr, "Edytuj samochód", "Nowa marka:", QLineEdit::Normal, QString::fromStdString(marka));
+        QString newModel = QInputDialog::getText(nullptr, "Edytuj samochód", "Nowy model:", QLineEdit::Normal, QString::fromStdString(model));
+        QString newRokProdukcji = QInputDialog::getText(nullptr, "Edytuj samochód", "Nowy rok produkcji:", QLineEdit::Normal, QString::number(rokProdukcji));
+        QString newPrzebieg = QInputDialog::getText(nullptr, "Edytuj samochód", "Nowy przebieg:", QLineEdit::Normal, QString::number(przebieg));
+        QString newVin = QInputDialog::getText(nullptr, "Edytuj samochód", "Nowy VIN:", QLineEdit::Normal, QString::fromStdString(vin));
+        QString newRejestracja = QInputDialog::getText(nullptr, "Edytuj samochód", "Nowa rejestracja:", QLineEdit::Normal, QString::fromStdString(rejestracja));
+
+        if (!newMarka.isEmpty() && !newModel.isEmpty() && !newRokProdukcji.isEmpty() && !newPrzebieg.isEmpty() && !newVin.isEmpty() && !newRejestracja.isEmpty()) {
+            marka = newMarka.toStdString();
+            model = newModel.toStdString();
+            rokProdukcji = newRokProdukcji.toInt();
+            przebieg = newPrzebieg.toInt();
+            vin = newVin.toStdString();
+            rejestracja = newRejestracja.toStdString();
+            QMessageBox::information(nullptr, "Edytuj samochód", "Dane samochodu zostały zaktualizowane.");
+        }
+    }
+
+    void usunSamochod(vector<Samochod> &samochody) {
+        QMessageBox::StandardButton reply;
+        reply = QMessageBox::question(nullptr, "Usuń samochód", "Czy na pewno chcesz usunąć ten samochód?", QMessageBox::Yes|QMessageBox::No);
+        if (reply == QMessageBox::Yes) {
+            auto it = std::find_if(samochody.begin(), samochody.end(), [this](const Samochod &s) {
+                return s.marka == this->marka && s.model == this->model && s.rokProdukcji == this->rokProdukcji;
+            });
+            if (it != samochody.end()) {
+                samochody.erase(it);
+                QMessageBox::information(nullptr, "Usuń samochód", "Samochód został usunięty.");
+            }
+        }
+    }
+
+    static void dodajSamochod(vector<Samochod> &samochody) {
+        QString newMarka = QInputDialog::getText(nullptr, "Dodaj samochód", "Marka:");
+        if (newMarka.isEmpty()) return;
+
+        QString newModel = QInputDialog::getText(nullptr, "Dodaj samochód", "Model:");
+        if (newModel.isEmpty()) return;
+
+        QString newRokProdukcji = QInputDialog::getText(nullptr, "Dodaj samochód", "Rok produkcji:");
+        if (newRokProdukcji.isEmpty()) return;
+
+        QString newPrzebieg = QInputDialog::getText(nullptr, "Dodaj samochód", "Przebieg:");
+        if (newPrzebieg.isEmpty()) return;
+
+        QString newVin = QInputDialog::getText(nullptr, "Dodaj samochód", "VIN:");
+        if (newVin.isEmpty()) return;
+
+        QString newRejestracja = QInputDialog::getText(nullptr, "Dodaj samochód", "Rejestracja:");
+        if (newRejestracja.isEmpty()) return;
+
+        samochody.push_back(Samochod(newMarka.toStdString(), newModel.toStdString(), newRokProdukcji.toInt(), newPrzebieg.toInt(), newVin.toStdString(), newRejestracja.toStdString()));
+        QMessageBox::information(nullptr, "Dodaj samochód", "Nowy samochód został dodany.");
+    }
+
+    void szukajSamochod(vector<Samochod> &samochody) {
+        QString searchMarka = QInputDialog::getText(nullptr, "Szukaj samochodu", "Podaj markę:");
+        if (!searchMarka.isEmpty()) {
+            for (const auto &samochod : samochody) {
+                if (QString::fromStdString(samochod.marka) == searchMarka) {
+                    QMessageBox::information(nullptr, "Wynik wyszukiwania", "Znaleziono samochód: " + QString::fromStdString(samochod.marka) + " " + QString::fromStdString(samochod.model));
+                    return;
+                }
+            }
+            QMessageBox::information(nullptr, "Wynik wyszukiwania", "Nie znaleziono samochodu o marce: " + searchMarka);
+        }
+    }
 };
 
 class MainWindow : public QMainWindow {
@@ -113,6 +182,7 @@ public:
     MainWindow(QWidget *parent = nullptr) : QMainWindow(parent) {
         QVBoxLayout *layout = new QVBoxLayout;
 
+        //person list widgets
         personListWidget = new QListWidget(this);
         layout->addWidget(personListWidget);
 
@@ -132,27 +202,54 @@ public:
         layout->addWidget(deletePersonButton);
         connect(deletePersonButton, &QPushButton::clicked, this, &MainWindow::on_deletePersonButton_clicked);
 
+        //car list widgets
         carListWidget = new QListWidget(this);
         layout->addWidget(carListWidget);
+
+        QPushButton *addCarButton = new QPushButton("Dodaj samochód", this);
+        layout->addWidget(addCarButton);
+        connect(addCarButton, &QPushButton::clicked, this, &MainWindow::on_addCarButton_clicked);
+
+        QPushButton *searchCarButton = new QPushButton("Szukaj samochodu", this);
+        layout->addWidget(searchCarButton);
+        connect(searchCarButton, &QPushButton::clicked, this, &MainWindow::on_searchCarButton_clicked);
+
+        QPushButton *editCarButton = new QPushButton("Edytuj samochód", this);
+        layout->addWidget(editCarButton);
+        connect(editCarButton, &QPushButton::clicked, this, &MainWindow::on_editCarButton_clicked);
+
+        QPushButton *deleteCarButton = new QPushButton("Usuń samochód", this);
+        layout->addWidget(deleteCarButton);
+        connect(deleteCarButton, &QPushButton::clicked, this, &MainWindow::on_deleteCarButton_clicked);
+
+        //return and rent buttons
 
         QPushButton *rentButton = new QPushButton("Wypożycz", this);
         layout->addWidget(rentButton);
         connect(rentButton, &QPushButton::clicked, this, &MainWindow::on_rentButton_clicked);
 
-        vector<Samochod> samochody = {
-            Samochod("Toyota", "Corolla", 2020, 180000, "gjrnel433", "KR12345"),
-            Samochod("Honda", "Civic", 2019, 10000, "gd3333333", "PO12345"),
-            Samochod("Ford", "Focus", 2018, 20000, "123456789", "KR12345"),
-        };
+        QPushButton *returnButton = new QPushButton("Zwróć", this);
+        layout->addWidget(returnButton);
+        connect(returnButton, &QPushButton::clicked, this, &MainWindow::on_returnButton_clicked);
+
+        // vector<Samochod> samochody = {
+        //     Samochod("Toyota", "Corolla", 2020, 180000, "gjrnel433", "KR12345"),
+        //     Samochod("Honda", "Civic", 2019, 10000, "gd3333333", "PO12345"),
+        //     Samochod("Ford", "Focus", 2018, 20000, "123456789", "KR12345"),
+        // };
+
+        // for (const auto &samochod : samochody) {
+        //     carListWidget->addItem(QString("%1 %2 (%3) (%4) %5 %6")
+        //         .arg(QString::fromStdString(samochod.marka))
+        //         .arg(QString::fromStdString(samochod.model))
+        //         .arg(samochod.rokProdukcji)
+        //         .arg(samochod.przebieg)
+        //         .arg(QString::fromStdString(samochod.vin))
+        //         .arg(QString::fromStdString(samochod.rejestracja)));
+        // }
 
         for (const auto &samochod : samochody) {
-            carListWidget->addItem(QString("%1 %2 (%3) (%4) %5 %6")
-                .arg(QString::fromStdString(samochod.marka))
-                .arg(QString::fromStdString(samochod.model))
-                .arg(samochod.rokProdukcji)
-                .arg(samochod.przebieg)
-                .arg(QString::fromStdString(samochod.vin))
-                .arg(QString::fromStdString(samochod.rejestracja)));
+            carListWidget->addItem(carToString(samochod));
         }
 
         QWidget *container = new QWidget;
@@ -163,6 +260,7 @@ public:
     }
 
 private slots:
+//Person slots
     void on_addPersonButton_clicked() {
         Osoba::dodajOsobe(osoby);
         updatePersonList();
@@ -197,6 +295,42 @@ private slots:
         osoby[personIndex].usunOsobe(osoby);
         updatePersonList();
     }
+    //car slots
+    void on_addCarButton_clicked() {
+        Samochod::dodajSamochod(samochody);
+        updateCarList();
+    }
+
+    void on_searchCarButton_clicked() {
+        if (samochody.empty()) {
+            QMessageBox::information(this, "Brak danych", "Lista samochodów jest pusta.");
+            return;
+        }
+        samochody.front().szukajSamochod(samochody);
+    }
+
+    void on_editCarButton_clicked() {
+        QListWidgetItem *selectedCarItem = carListWidget->currentItem();
+        if (!selectedCarItem) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Wybierz samochód z listy."));
+            return;
+        }
+        int carIndex = carListWidget->row(selectedCarItem);
+        samochody[carIndex].edytujSamochod();
+        updateCarList();
+    }
+
+    void on_deleteCarButton_clicked() {
+        QListWidgetItem *selectedCarItem = carListWidget->currentItem();
+        if (!selectedCarItem) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Wybierz samochód z listy."));
+            return;
+        }
+        int carIndex = carListWidget->row(selectedCarItem);
+        samochody[carIndex].usunSamochod(samochody);
+        updateCarList();
+    }
+    //retn  buttons
 
     void on_rentButton_clicked() {
         QListWidgetItem *selectedCarItem = carListWidget->currentItem();
@@ -234,7 +368,7 @@ private slots:
         rentedCars.insert(carDetails);
 
         // Gray out the rented car
-        selectedCarItem->setFlags(selectedCarItem->flags() & ~Qt::ItemIsEnabled);
+        // selectedCarItem->setFlags(selectedCarItem->flags() & ~Qt::ItemIsEnabled);
         selectedCarItem->setBackground(Qt::lightGray);
 
         QMessageBox::information(this, tr("Wynajem samochodu"), tr("Wynajęto samochód dla: %1\nSamochód: %2")
@@ -242,10 +376,33 @@ private slots:
             .arg(carDetails));
     }
 
+    void on_returnButton_clicked() {
+        QListWidgetItem *selectedCarItem = carListWidget->currentItem();
+        if (!selectedCarItem) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Wybierz samochód z listy."));
+            return;
+        }
+
+        QString carDetails = selectedCarItem->text();
+        if (rentedCars.find(carDetails) == rentedCars.end()) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Ten samochód nie jest wynajęty."));
+            return;
+        }
+
+        rentedCars.erase(carDetails);
+
+        // Enable the returned car
+        // selectedCarItem->setFlags(selectedCarItem->flags() | Qt::ItemIsEnabled);
+        selectedCarItem->setBackground(Qt::transparent);
+
+        QMessageBox::information(this, tr("Zwrot samochodu"), tr("Zwrócono samochód: %1").arg(carDetails));
+    }
+
 private:
     QListWidget *personListWidget;
     QListWidget *carListWidget;
     vector<Osoba> osoby;
+    vector<Samochod> samochody;
     unordered_set<QString> rentedCars;
 
     void updatePersonList() {
@@ -254,7 +411,30 @@ private:
             personListWidget->addItem(osoba.imie + " " + osoba.nazwisko);
         }
     }
+
+    void updateCarList() {
+        carListWidget->clear();
+        for (const auto &samochod : samochody) {
+            QListWidgetItem *item = new QListWidgetItem(carToString(samochod), carListWidget);
+            if (rentedCars.find(item->text()) != rentedCars.end()) {
+                item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
+                item->setBackground(Qt::lightGray);
+            }
+        }
+    }
+
+    QString carToString(const Samochod &samochod) {
+        return QString("%1 %2 (%3) (%4) %5 %6")
+            .arg(QString::fromStdString(samochod.marka))
+            .arg(QString::fromStdString(samochod.model))
+            .arg(samochod.rokProdukcji)
+            .arg(samochod.przebieg)
+            .arg(QString::fromStdString(samochod.vin))
+            .arg(QString::fromStdString(samochod.rejestracja));
+    }
+
 };
+
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
