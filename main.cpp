@@ -80,15 +80,18 @@ public:
 class Kierowca : public Osoba {
 public:
     QString prawoJazdy;
-    QString dataUzyskaniaPrawaJazdy;
+    QDateTime dataUzyskaniaPrawaJazdy;
 
-    Kierowca(QString i, QString n, QDateTime d, QString p, QString u) : Osoba(i, n, d), prawoJazdy(p), dataUzyskaniaPrawaJazdy(u) {}
+    Kierowca(QString i, QString n, QDateTime d, QString p, QDateTime u) : Osoba(i, n, d), prawoJazdy(p), dataUzyskaniaPrawaJazdy(u) {}
 
     void edytujKierowce() {
         edytujOsobe();
         QString newPrawoJazdy = QInputDialog::getText(nullptr, "Edytuj kierowcę", "Nowy numer prawa jazdy:", QLineEdit::Normal, prawoJazdy);
-        if (!newPrawoJazdy.isEmpty()) {
+        QString newDataUzyskaniaPrawaJazdyStr = QInputDialog::getText(nullptr, "Edytuj kierowcę", "Data uzyskania prawa jazdy (YYYY-MM-DD):", QLineEdit::Normal, dataUzyskaniaPrawaJazdy.toString("yyyy-MM-dd"));
+        QDate newDataUzyskaniaPrawaJazdy = QDate::fromString(newDataUzyskaniaPrawaJazdyStr, "yyyy-MM-dd");
+        if (!newPrawoJazdy.isEmpty() && !newDataUzyskaniaPrawaJazdy.isValid()) {
             prawoJazdy = newPrawoJazdy;
+            dataUzyskaniaPrawaJazdy = QDateTime(newDataUzyskaniaPrawaJazdy);
             QMessageBox::information(nullptr, "Edytuj kierowcę", "Dane kierowcy zostały zaktualizowane.");
         }
     }
