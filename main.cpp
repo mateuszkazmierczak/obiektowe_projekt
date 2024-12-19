@@ -89,7 +89,7 @@ public:
         QString newPrawoJazdy = QInputDialog::getText(nullptr, "Edytuj kierowcę", "Nowy numer prawa jazdy:", QLineEdit::Normal, prawoJazdy);
         QString newDataUzyskaniaPrawaJazdyStr = QInputDialog::getText(nullptr, "Edytuj kierowcę", "Data uzyskania prawa jazdy (YYYY-MM-DD):", QLineEdit::Normal, dataUzyskaniaPrawaJazdy.toString("yyyy-MM-dd"));
         QDate newDataUzyskaniaPrawaJazdy = QDate::fromString(newDataUzyskaniaPrawaJazdyStr, "yyyy-MM-dd");
-        if (!newPrawoJazdy.isEmpty() && !newDataUzyskaniaPrawaJazdy.isValid()) {
+        if (!newPrawoJazdy.isEmpty() && newDataUzyskaniaPrawaJazdy.isValid()) {
             prawoJazdy = newPrawoJazdy;
             dataUzyskaniaPrawaJazdy = QDateTime(newDataUzyskaniaPrawaJazdy);
             QMessageBox::information(nullptr, "Edytuj kierowcę", "Dane kierowcy zostały zaktualizowane.");
@@ -196,6 +196,19 @@ public:
     }
 };
 
+class Wypozyczenie {
+public:
+    Osoba osoba;
+    Samochod samochod;
+    QDateTime dataStart;
+    QDateTime dataEnd;
+    bool additionalInsurance;
+
+    Wypozyczenie(const Osoba &o, const Samochod &s, const QDateTime &start, const QDateTime &end, bool insurance)
+        : osoba(o), samochod(s), dataStart(start), dataEnd(end), additionalInsurance(insurance) {}
+};
+
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -246,7 +259,6 @@ public:
         connect(deleteCarButton, &QPushButton::clicked, this, &MainWindow::on_deleteCarButton_clicked);
 
         // rental and return buttons
-
         QPushButton *rentButton = new QPushButton("Wypożycz", this);
         layout->addWidget(rentButton);
         connect(rentButton, &QPushButton::clicked, this, &MainWindow::on_rentButton_clicked);
@@ -256,7 +268,6 @@ public:
         connect(returnButton, &QPushButton::clicked, this, &MainWindow::on_returnButton_clicked);
 
         // Edit Rental Button
-
         QPushButton *editRentalButton = new QPushButton("Edytuj wypożyczalnię", this);
         layout->addWidget(editRentalButton);
         connect(editRentalButton, &QPushButton::clicked, this, &MainWindow::on_editRentalButton_clicked);
@@ -265,7 +276,10 @@ public:
         container->setLayout(layout);
         setCentralWidget(container);
 
+        // Initialize with some data
+        initializeData();
         updatePersonList();
+        updateCarList();
     }
 
 private slots:
@@ -304,6 +318,7 @@ private slots:
         osoby[personIndex].usunOsobe(osoby);
         updatePersonList();
     }
+
     // Car slots
     void on_addCarButton_clicked() {
         Samochod::dodajSamochod(samochody);
@@ -339,8 +354,8 @@ private slots:
         samochody[carIndex].usunSamochod(samochody);
         updateCarList();
     }
-    // Rent and return buttons
 
+    // Rent and return buttons
     void on_rentButton_clicked() {
         QListWidgetItem *selectedCarItem = carListWidget->currentItem();
         if (!selectedCarItem) {
@@ -354,34 +369,53 @@ private slots:
             return;
         }
 
+        int carIndex = carListWidget->row(selectedCarItem);
+        int personIndex = personListWidget->row(selectedPersonItem);
+
+        // Check if already rented
         QString carDetails = selectedCarItem->text();
-        if (rentedCars.find(carDetails) != rentedCars.end()) {
+        auto it = std::find_if(wypozyczenia.begin(), wypozyczenia.end(), [&](const Wypozyczenie &w) {
+            return carToString(w.samochod) == carDetails;
+        });
+        if (it != wypozyczenia.end()) {
             QMessageBox::warning(this, tr("Błąd"), tr("Ten samochód jest już wynajęty."));
             return;
         }
 
-        int personIndex = personListWidget->row(selectedPersonItem);
-        Osoba &osoba = osoby[personIndex];
-
-        QString personDetails = osoba.imie + " " + osoba.nazwisko;
-
-        // Save rental data to file
-        ofstream file("baza.txt", ios::app);
-        if (file.is_open()) {
-            file << "Osoba: " << personDetails.toStdString() << ", Samochód: " << carDetails.toStdString() << "\n";
-            file.close();
-        } else {
-            QMessageBox::warning(this, tr("Błąd"), tr("Nie można otworzyć pliku baza.txt."));
+        // Gather rental data
+        QString startStr = QInputDialog::getText(this, "Data rozpoczęcia", "Podaj datę rozpoczęcia (YYYY-MM-DD):");
+        QDate startDate = QDate::fromString(startStr, "yyyy-MM-dd");
+        if (!startDate.isValid()) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Niepoprawna data rozpoczęcia."));
+            return;
         }
 
-        rentedCars.insert(carDetails);
+        QString endStr = QInputDialog::getText(this, "Data zakończenia", "Podaj datę zakończenia (YYYY-MM-DD):");
+        QDate endDate = QDate::fromString(endStr, "yyyy-MM-dd");
+        if (!endDate.isValid() || endDate < startDate) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Niepoprawna data zakończenia."));
+            return;
+        }
+
+        QStringList insuranceOptions;
+        insuranceOptions << "Tak" << "Nie";
+        bool ok;
+        QString insuranceChoice = QInputDialog::getItem(this, "Ubezpieczenie dodatkowe", "Czy chcesz ubezpieczenie dodatkowe?", insuranceOptions, 0, false, &ok);
+        if (!ok) return;
+
+        bool additionalInsurance = (insuranceChoice == "Tak");
+
+        Wypozyczenie w(osoby[personIndex], samochody[carIndex], QDateTime(startDate), QDateTime(endDate), additionalInsurance);
+        wypozyczenia.push_back(w);
 
         // Gray out the rented car
         selectedCarItem->setBackground(Qt::lightGray);
 
-        QMessageBox::information(this, tr("Wynajem samochodu"), tr("Wynajęto samochód dla: %1\nSamochód: %2")
-            .arg(personDetails)
-            .arg(carDetails));
+        QMessageBox::information(this, tr("Wynajem samochodu"), tr("Wynajęto samochód dla: %1 %2\nSamochód: %3\nUbezpieczenie dodatkowe: %4")
+            .arg(osoby[personIndex].imie)
+            .arg(osoby[personIndex].nazwisko)
+            .arg(carDetails)
+            .arg(additionalInsurance ? "Tak" : "Nie"));
     }
 
     void on_returnButton_clicked() {
@@ -392,12 +426,19 @@ private slots:
         }
 
         QString carDetails = selectedCarItem->text();
-        if (rentedCars.find(carDetails) == rentedCars.end()) {
+
+        // Find the rental
+        auto it = std::find_if(wypozyczenia.begin(), wypozyczenia.end(), [&](const Wypozyczenie &w) {
+            return carToString(w.samochod) == carDetails;
+        });
+
+        if (it == wypozyczenia.end()) {
             QMessageBox::warning(this, tr("Błąd"), tr("Ten samochód nie jest wynajęty."));
             return;
         }
 
-        rentedCars.erase(carDetails);
+        // Return the car
+        wypozyczenia.erase(it);
 
         // Enable the returned car
         selectedCarItem->setBackground(Qt::transparent);
@@ -415,7 +456,7 @@ private:
     QListWidget *carListWidget;
     vector<Osoba> osoby;
     vector<Samochod> samochody;
-    unordered_set<QString> rentedCars;
+    vector<Wypozyczenie> wypozyczenia;
     Wypozyczalnia wypozyczalnia;
 
     void updatePersonList() {
@@ -429,7 +470,11 @@ private:
         carListWidget->clear();
         for (const auto &samochod : samochody) {
             QListWidgetItem *item = new QListWidgetItem(carToString(samochod), carListWidget);
-            if (rentedCars.find(item->text()) != rentedCars.end()) {
+            // Check if this car is currently rented
+            auto it = std::find_if(wypozyczenia.begin(), wypozyczenia.end(), [&](const Wypozyczenie &w) {
+                return carToString(w.samochod) == item->text();
+            });
+            if (it != wypozyczenia.end()) {
                 item->setBackground(Qt::lightGray);
             }
         }
@@ -444,7 +489,21 @@ private:
             .arg(QString::fromStdString(samochod.vin))
             .arg(QString::fromStdString(samochod.rejestracja));
     }
+
+    void initializeData() {
+        // Add some sample persons
+        osoby.push_back(Osoba("Jan", "Kowalski", QDateTime(QDate(1990,1,1))));
+        osoby.push_back(Osoba("Anna", "Nowak", QDateTime(QDate(1985,5,12))));
+        osoby.push_back(Osoba("Piotr", "Zielinski", QDateTime(QDate(1978,10,30))));
+
+        // Add some sample cars
+        samochody.push_back(Samochod("Toyota", "Corolla", 2015, 60000, "VIN1234ABCD", "KR12345"));
+        samochody.push_back(Samochod("Volkswagen", "Golf", 2018, 30000, "VIN5678EFGH", "WA12345"));
+        samochody.push_back(Samochod("Skoda", "Octavia", 2020, 10000, "VIN9012IJKL", "PO12345"));
+    }
 };
+
+#include "main.moc"
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
@@ -455,5 +514,3 @@ int main(int argc, char *argv[]) {
 
     return app.exec();
 }
-
-#include "main.moc"
