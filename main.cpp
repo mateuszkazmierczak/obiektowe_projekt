@@ -232,6 +232,40 @@ public:
 
     Wypozyczenie(const Osoba &o, const Samochod &s, const QDateTime &start, const QDateTime &end, bool insurance)
         : osoba(o), samochod(s), dataStart(start), dataEnd(end), additionalInsurance(insurance) {}
+
+    void edytujWypozyczenie() {
+        // Prompt for new start date
+        QString startStr = QInputDialog::getText(nullptr, "Edytuj wypożyczenie", "Nowa data rozpoczęcia (YYYY-MM-DD):", QLineEdit::Normal, dataStart.date().toString("yyyy-MM-dd"));
+        QDate newStartDate = QDate::fromString(startStr, "yyyy-MM-dd");
+        if (!newStartDate.isValid()) {
+            QMessageBox::warning(nullptr, "Błąd", "Niepoprawna data rozpoczęcia.");
+            return;
+        }
+
+        // Prompt for new end date
+        QString endStr = QInputDialog::getText(nullptr, "Edytuj wypożyczenie", "Nowa data zakończenia (YYYY-MM-DD):", QLineEdit::Normal, dataEnd.date().toString("yyyy-MM-dd"));
+        QDate newEndDate = QDate::fromString(endStr, "yyyy-MM-dd");
+        if (!newEndDate.isValid() || newEndDate < newStartDate) {
+            QMessageBox::warning(nullptr, "Błąd", "Niepoprawna data zakończenia.");
+            return;
+        }
+
+        // Prompt for new insurance option
+        QStringList insuranceOptions;
+        insuranceOptions << "Tak" << "Nie";
+        bool ok;
+        QString currentInsurance = additionalInsurance ? "Tak" : "Nie";
+        QString insuranceChoice = QInputDialog::getItem(nullptr, "Edytuj wypożyczenie", "Ubezpieczenie dodatkowe:", insuranceOptions, insuranceOptions.indexOf(currentInsurance), false, &ok);
+        if (!ok) return;
+        bool newInsurance = (insuranceChoice == "Tak");
+
+        // Update fields
+        dataStart = QDateTime(newStartDate);
+        dataEnd = QDateTime(newEndDate);
+        additionalInsurance = newInsurance;
+
+        QMessageBox::information(nullptr, "Edytuj wypożyczenie", "Dane wypożyczenia zostały zaktualizowane.");
+    }
 };
 
 class MainWindow : public QMainWindow {
@@ -263,7 +297,6 @@ public:
         layout->addWidget(deletePersonButton);
         connect(deletePersonButton, &QPushButton::clicked, this, &MainWindow::on_deletePersonButton_clicked);
 
-        // Button to clear person selection
         QPushButton *clearPersonSelectionButton = new QPushButton("Odznacz osobę", this);
         layout->addWidget(clearPersonSelectionButton);
         connect(clearPersonSelectionButton, &QPushButton::clicked, this, &MainWindow::on_clearPersonSelection_clicked);
@@ -284,7 +317,6 @@ public:
         layout->addWidget(deleteDriverButton);
         connect(deleteDriverButton, &QPushButton::clicked, this, &MainWindow::on_deleteDriverButton_clicked);
 
-        // Button to clear driver selection
         QPushButton *clearDriverSelectionButton = new QPushButton("Odznacz kierowcę", this);
         layout->addWidget(clearDriverSelectionButton);
         connect(clearDriverSelectionButton, &QPushButton::clicked, this, &MainWindow::on_clearDriverSelection_clicked);
@@ -318,10 +350,15 @@ public:
         layout->addWidget(returnButton);
         connect(returnButton, &QPushButton::clicked, this, &MainWindow::on_returnButton_clicked);
 
-        // Edit rental place (wypożyczalnia)
-        QPushButton *editRentalButton = new QPushButton("Edytuj wypożyczalnię", this);
+        // New: Edit rental button
+        QPushButton *editRentalButton = new QPushButton("Edytuj wypożyczenie", this);
         layout->addWidget(editRentalButton);
-        connect(editRentalButton, &QPushButton::clicked, this, &MainWindow::on_editRentalButton_clicked);
+        connect(editRentalButton, &QPushButton::clicked, this, &MainWindow::on_editWypozyczenieButton_clicked);
+
+        // Edit rental place (wypożyczalnia)
+        QPushButton *editWypozyczalniaButton = new QPushButton("Edytuj wypożyczalnię", this);
+        layout->addWidget(editWypozyczalniaButton);
+        connect(editWypozyczalniaButton, &QPushButton::clicked, this, &MainWindow::on_editRentalButton_clicked);
 
         QWidget *container = new QWidget;
         container->setLayout(layout);
@@ -562,6 +599,28 @@ private slots:
         selectedCarItem->setBackground(Qt::transparent);
 
         QMessageBox::information(this, tr("Zwrot samochodu"), tr("Zwrócono samochód: %1").arg(carDetails));
+    }
+
+    void on_editWypozyczenieButton_clicked() {
+        QListWidgetItem *selectedCarItem = carListWidget->currentItem();
+        if (!selectedCarItem) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Wybierz samochód z listy."));
+            return;
+        }
+
+        QString carDetails = selectedCarItem->text();
+
+        // Find the rental associated with this car
+        auto it = std::find_if(wypozyczenia.begin(), wypozyczenia.end(), [&](Wypozyczenie &w) {
+            return carToString(w.samochod) == carDetails;
+        });
+
+        if (it == wypozyczenia.end()) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Ten samochód nie jest wynajęty."));
+            return;
+        }
+
+        it->edytujWypozyczenie();
     }
 
     void on_editRentalButton_clicked() {
