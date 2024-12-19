@@ -8,9 +8,7 @@
 #include <QString>
 #include <QDateTime>
 #include <vector>
-#include <iostream>
-#include <fstream>
-#include <unordered_set>
+#include <algorithm>
 
 using namespace std;
 
@@ -82,18 +80,45 @@ public:
     QString prawoJazdy;
     QDateTime dataUzyskaniaPrawaJazdy;
 
-    Kierowca(QString i, QString n, QDateTime d, QString p, QDateTime u) : Osoba(i, n, d), prawoJazdy(p), dataUzyskaniaPrawaJazdy(u) {}
+    Kierowca(QString i, QString n, QDateTime d, QString p, QDateTime u)
+        : Osoba(i, n, d), prawoJazdy(p), dataUzyskaniaPrawaJazdy(u) {}
 
     void edytujKierowce() {
         edytujOsobe();
         QString newPrawoJazdy = QInputDialog::getText(nullptr, "Edytuj kierowcę", "Nowy numer prawa jazdy:", QLineEdit::Normal, prawoJazdy);
-        QString newDataUzyskaniaPrawaJazdyStr = QInputDialog::getText(nullptr, "Edytuj kierowcę", "Data uzyskania prawa jazdy (YYYY-MM-DD):", QLineEdit::Normal, dataUzyskaniaPrawaJazdy.toString("yyyy-MM-dd"));
-        QDate newDataUzyskaniaPrawaJazdy = QDate::fromString(newDataUzyskaniaPrawaJazdyStr, "yyyy-MM-dd");
-        if (!newPrawoJazdy.isEmpty() && newDataUzyskaniaPrawaJazdy.isValid()) {
+        QString newDataUzyskaniaStr = QInputDialog::getText(nullptr, "Edytuj kierowcę", "Data uzyskania prawa jazdy (YYYY-MM-DD):", QLineEdit::Normal, dataUzyskaniaPrawaJazdy.toString("yyyy-MM-dd"));
+        QDate newDataUzyskania = QDate::fromString(newDataUzyskaniaStr, "yyyy-MM-dd");
+        if (!newPrawoJazdy.isEmpty() && newDataUzyskania.isValid()) {
             prawoJazdy = newPrawoJazdy;
-            dataUzyskaniaPrawaJazdy = QDateTime(newDataUzyskaniaPrawaJazdy);
+            dataUzyskaniaPrawaJazdy = QDateTime(newDataUzyskania);
             QMessageBox::information(nullptr, "Edytuj kierowcę", "Dane kierowcy zostały zaktualizowane.");
         }
+    }
+
+    static void dodajKierowce(vector<Kierowca> &kierowcy) {
+        QString newImie = QInputDialog::getText(nullptr, "Dodaj kierowcę", "Imię:");
+        if (newImie.isEmpty()) return;
+
+        QString newNazwisko = QInputDialog::getText(nullptr, "Dodaj kierowcę", "Nazwisko:");
+        if (newNazwisko.isEmpty()) return;
+
+        QDate newDataUrodzenia = QDate::fromString(QInputDialog::getText(nullptr, "Dodaj kierowcę", "Data urodzenia (YYYY-MM-DD):"), "yyyy-MM-dd");
+        if (!newDataUrodzenia.isValid()) {
+            QMessageBox::warning(nullptr, "Błąd", "Niepoprawna data urodzenia.");
+            return;
+        }
+
+        QString newPrawoJazdy = QInputDialog::getText(nullptr, "Dodaj kierowcę", "Numer prawa jazdy:");
+        if (newPrawoJazdy.isEmpty()) return;
+
+        QDate newDataUzyskania = QDate::fromString(QInputDialog::getText(nullptr, "Dodaj kierowcę", "Data uzyskania prawa jazdy (YYYY-MM-DD):"), "yyyy-MM-dd");
+        if (!newDataUzyskania.isValid()) {
+            QMessageBox::warning(nullptr, "Błąd", "Niepoprawna data uzyskania prawa jazdy.");
+            return;
+        }
+
+        kierowcy.push_back(Kierowca(newImie, newNazwisko, QDateTime(newDataUrodzenia), newPrawoJazdy, QDateTime(newDataUzyskania)));
+        QMessageBox::information(nullptr, "Dodaj kierowcę", "Nowy kierowca został dodany.");
     }
 };
 
@@ -106,7 +131,8 @@ public:
     string vin;
     string rejestracja;
 
-    Samochod(string m, string mo, int r, int p, string v, string re) : marka(m), model(mo), rokProdukcji(r), przebieg(p), vin(v), rejestracja(re) {}
+    Samochod(string m, string mo, int r, int p, string v, string re)
+        : marka(m), model(mo), rokProdukcji(r), przebieg(p), vin(v), rejestracja(re) {}
 
     void edytujSamochod() {
         QString newMarka = QInputDialog::getText(nullptr, "Edytuj samochód", "Nowa marka:", QLineEdit::Normal, QString::fromStdString(marka));
@@ -208,7 +234,6 @@ public:
         : osoba(o), samochod(s), dataStart(start), dataEnd(end), additionalInsurance(insurance) {}
 };
 
-
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -218,7 +243,7 @@ public:
 
         setWindowTitle(wypozyczalnia.nazwa + " - " + wypozyczalnia.adres);
 
-        // person list widgets
+        // Person list widgets
         personListWidget = new QListWidget(this);
         layout->addWidget(personListWidget);
 
@@ -238,7 +263,33 @@ public:
         layout->addWidget(deletePersonButton);
         connect(deletePersonButton, &QPushButton::clicked, this, &MainWindow::on_deletePersonButton_clicked);
 
-        // car list widgets
+        // Button to clear person selection
+        QPushButton *clearPersonSelectionButton = new QPushButton("Odznacz osobę", this);
+        layout->addWidget(clearPersonSelectionButton);
+        connect(clearPersonSelectionButton, &QPushButton::clicked, this, &MainWindow::on_clearPersonSelection_clicked);
+
+        // Driver list widgets
+        driverListWidget = new QListWidget(this);
+        layout->addWidget(driverListWidget);
+
+        QPushButton *addDriverButton = new QPushButton("Dodaj kierowcę", this);
+        layout->addWidget(addDriverButton);
+        connect(addDriverButton, &QPushButton::clicked, this, &MainWindow::on_addDriverButton_clicked);
+
+        QPushButton *editDriverButton = new QPushButton("Edytuj kierowcę", this);
+        layout->addWidget(editDriverButton);
+        connect(editDriverButton, &QPushButton::clicked, this, &MainWindow::on_editDriverButton_clicked);
+
+        QPushButton *deleteDriverButton = new QPushButton("Usuń kierowcę", this);
+        layout->addWidget(deleteDriverButton);
+        connect(deleteDriverButton, &QPushButton::clicked, this, &MainWindow::on_deleteDriverButton_clicked);
+
+        // Button to clear driver selection
+        QPushButton *clearDriverSelectionButton = new QPushButton("Odznacz kierowcę", this);
+        layout->addWidget(clearDriverSelectionButton);
+        connect(clearDriverSelectionButton, &QPushButton::clicked, this, &MainWindow::on_clearDriverSelection_clicked);
+
+        // Car list widgets
         carListWidget = new QListWidget(this);
         layout->addWidget(carListWidget);
 
@@ -267,7 +318,7 @@ public:
         layout->addWidget(returnButton);
         connect(returnButton, &QPushButton::clicked, this, &MainWindow::on_returnButton_clicked);
 
-        // Edit Rental Button
+        // Edit rental place (wypożyczalnia)
         QPushButton *editRentalButton = new QPushButton("Edytuj wypożyczalnię", this);
         layout->addWidget(editRentalButton);
         connect(editRentalButton, &QPushButton::clicked, this, &MainWindow::on_editRentalButton_clicked);
@@ -279,6 +330,7 @@ public:
         // Initialize with some data
         initializeData();
         updatePersonList();
+        updateDriverList();
         updateCarList();
     }
 
@@ -319,6 +371,50 @@ private slots:
         updatePersonList();
     }
 
+    void on_clearPersonSelection_clicked() {
+        personListWidget->clearSelection();
+        personListWidget->setCurrentItem(nullptr);  // ensures no current item
+    }
+
+    // Driver (Kierowca) slots
+    void on_addDriverButton_clicked() {
+        Kierowca::dodajKierowce(kierowcy);
+        updateDriverList();
+    }
+
+    void on_editDriverButton_clicked() {
+        QListWidgetItem *selectedDriverItem = driverListWidget->currentItem();
+        if (!selectedDriverItem) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Wybierz kierowcę z listy."));
+            return;
+        }
+        int driverIndex = driverListWidget->row(selectedDriverItem);
+        kierowcy[driverIndex].edytujKierowce();
+        updateDriverList();
+    }
+
+    void on_deleteDriverButton_clicked() {
+        QListWidgetItem *selectedDriverItem = driverListWidget->currentItem();
+        if (!selectedDriverItem) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Wybierz kierowcę z listy."));
+            return;
+        }
+        int driverIndex = driverListWidget->row(selectedDriverItem);
+
+        QMessageBox::StandardButton reply;
+        reply = QMessageBox::question(this, "Usuń kierowcę", "Czy na pewno chcesz usunąć tego kierowcę?", QMessageBox::Yes|QMessageBox::No);
+        if (reply == QMessageBox::Yes) {
+            kierowcy.erase(kierowcy.begin() + driverIndex);
+            QMessageBox::information(this, "Usuń kierowcę", "Kierowca został usunięty.");
+        }
+        updateDriverList();
+    }
+
+    void on_clearDriverSelection_clicked() {
+        driverListWidget->clearSelection();
+        driverListWidget->setCurrentItem(nullptr);  // ensures no current item
+    }
+
     // Car slots
     void on_addCarButton_clicked() {
         Samochod::dodajSamochod(samochody);
@@ -355,7 +451,7 @@ private slots:
         updateCarList();
     }
 
-    // Rent and return buttons
+    // Rent and return
     void on_rentButton_clicked() {
         QListWidgetItem *selectedCarItem = carListWidget->currentItem();
         if (!selectedCarItem) {
@@ -364,13 +460,22 @@ private slots:
         }
 
         QListWidgetItem *selectedPersonItem = personListWidget->currentItem();
-        if (!selectedPersonItem) {
-            QMessageBox::warning(this, tr("Błąd"), tr("Wybierz osobę z listy."));
+        QListWidgetItem *selectedDriverItem = driverListWidget->currentItem();
+
+        bool osobaSelected = (selectedPersonItem != nullptr);
+        bool kierowcaSelected = (selectedDriverItem != nullptr);
+
+        if (osobaSelected && kierowcaSelected) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Wybierz tylko jedną opcję: albo osobę, albo kierowcę."));
+            return;
+        }
+
+        if (!osobaSelected && !kierowcaSelected) {
+            QMessageBox::warning(this, tr("Błąd"), tr("Musisz wybrać osobę lub kierowcę."));
             return;
         }
 
         int carIndex = carListWidget->row(selectedCarItem);
-        int personIndex = personListWidget->row(selectedPersonItem);
 
         // Check if already rented
         QString carDetails = selectedCarItem->text();
@@ -405,17 +510,30 @@ private slots:
 
         bool additionalInsurance = (insuranceChoice == "Tak");
 
-        Wypozyczenie w(osoby[personIndex], samochody[carIndex], QDateTime(startDate), QDateTime(endDate), additionalInsurance);
-        wypozyczenia.push_back(w);
+        if (osobaSelected) {
+            int personIndex = personListWidget->row(selectedPersonItem);
+            Wypozyczenie w(osoby[personIndex], samochody[carIndex], QDateTime(startDate), QDateTime(endDate), additionalInsurance);
+            wypozyczenia.push_back(w);
+
+            QMessageBox::information(this, tr("Wynajem samochodu"), tr("Wynajęto samochód dla: %1 %2\nSamochód: %3\nUbezpieczenie dodatkowe: %4")
+                .arg(osoby[personIndex].imie)
+                .arg(osoby[personIndex].nazwisko)
+                .arg(carDetails)
+                .arg(additionalInsurance ? "Tak" : "Nie"));
+        } else {
+            int driverIndex = driverListWidget->row(selectedDriverItem);
+            Wypozyczenie w(kierowcy[driverIndex], samochody[carIndex], QDateTime(startDate), QDateTime(endDate), additionalInsurance);
+            wypozyczenia.push_back(w);
+
+            QMessageBox::information(this, tr("Wynajem samochodu"), tr("Wynajęto samochód dla: %1 %2 (Kierowca)\nSamochód: %3\nUbezpieczenie dodatkowe: %4")
+                .arg(kierowcy[driverIndex].imie)
+                .arg(kierowcy[driverIndex].nazwisko)
+                .arg(carDetails)
+                .arg(additionalInsurance ? "Tak" : "Nie"));
+        }
 
         // Gray out the rented car
         selectedCarItem->setBackground(Qt::lightGray);
-
-        QMessageBox::information(this, tr("Wynajem samochodu"), tr("Wynajęto samochód dla: %1 %2\nSamochód: %3\nUbezpieczenie dodatkowe: %4")
-            .arg(osoby[personIndex].imie)
-            .arg(osoby[personIndex].nazwisko)
-            .arg(carDetails)
-            .arg(additionalInsurance ? "Tak" : "Nie"));
     }
 
     void on_returnButton_clicked() {
@@ -453,8 +571,10 @@ private slots:
 
 private:
     QListWidget *personListWidget;
+    QListWidget *driverListWidget;
     QListWidget *carListWidget;
     vector<Osoba> osoby;
+    vector<Kierowca> kierowcy;
     vector<Samochod> samochody;
     vector<Wypozyczenie> wypozyczenia;
     Wypozyczalnia wypozyczalnia;
@@ -463,6 +583,13 @@ private:
         personListWidget->clear();
         for (const Osoba &osoba : osoby) {
             personListWidget->addItem(osoba.imie + " " + osoba.nazwisko);
+        }
+    }
+
+    void updateDriverList() {
+        driverListWidget->clear();
+        for (const Kierowca &k : kierowcy) {
+            driverListWidget->addItem(k.imie + " " + k.nazwisko + " | PJ: " + k.prawoJazdy);
         }
     }
 
@@ -496,6 +623,10 @@ private:
         osoby.push_back(Osoba("Anna", "Nowak", QDateTime(QDate(1985,5,12))));
         osoby.push_back(Osoba("Piotr", "Zielinski", QDateTime(QDate(1978,10,30))));
 
+        // Add some sample drivers
+        kierowcy.push_back(Kierowca("Adam", "Malinowski", QDateTime(QDate(1980,4,20)), "PJ12345", QDateTime(QDate(1998,5,5))));
+        kierowcy.push_back(Kierowca("Beata", "Kamińska", QDateTime(QDate(1992,7,15)), "PJ67890", QDateTime(QDate(2012,9,1))));
+
         // Add some sample cars
         samochody.push_back(Samochod("Toyota", "Corolla", 2015, 60000, "VIN1234ABCD", "KR12345"));
         samochody.push_back(Samochod("Volkswagen", "Golf", 2018, 30000, "VIN5678EFGH", "WA12345"));
@@ -509,7 +640,7 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
     MainWindow mainWindow;
-    mainWindow.resize(400, 500);
+    mainWindow.resize(400, 700);
     mainWindow.show();
 
     return app.exec();
