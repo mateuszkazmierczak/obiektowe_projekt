@@ -205,18 +205,25 @@ public:
 };
 
 class Wypozyczalnia {
-public:
+private:
     QString nazwa;
     QString adres;
 
+public:
     Wypozyczalnia(QString n, QString a) : nazwa(n), adres(a) {}
+
+    QString getNazwa() const { return nazwa; }
+    void setNazwa(const QString &newNazwa) { nazwa = newNazwa; }
+
+    QString getAdres() const { return adres; }
+    void setAdres(const QString &newAdres) { adres = newAdres; }
 
     void edytujWypozyczalnie() {
         QString newNazwa = QInputDialog::getText(nullptr, "Edytuj wypożyczalnię", "Nowa nazwa:", QLineEdit::Normal, nazwa);
         QString newAdres = QInputDialog::getText(nullptr, "Edytuj wypożyczalnię", "Nowy adres:", QLineEdit::Normal, adres);
         if (!newNazwa.isEmpty() && !newAdres.isEmpty()) {
-            nazwa = newNazwa;
-            adres = newAdres;
+            setNazwa(newNazwa);
+            setAdres(newAdres);
             QMessageBox::information(nullptr, "Edytuj wypożyczalnię", "Dane wypożyczalni zostały zaktualizowane.");
         }
     }
@@ -275,8 +282,7 @@ public:
     MainWindow(QWidget *parent = nullptr) : QMainWindow(parent), wypozyczalnia("Domyślna Wypożyczalnia", "Domyślny Adres") {
         QVBoxLayout *layout = new QVBoxLayout;
 
-        setWindowTitle(wypozyczalnia.nazwa + " - " + wypozyczalnia.adres);
-
+        setWindowTitle(wypozyczalnia.getNazwa() + " - " + wypozyczalnia.getAdres());
         // Person list widgets
         personListWidget = new QListWidget(this);
         layout->addWidget(personListWidget);
@@ -625,7 +631,7 @@ private slots:
 
     void on_editRentalButton_clicked() {
         wypozyczalnia.edytujWypozyczalnie();
-        setWindowTitle(wypozyczalnia.nazwa + " - " + wypozyczalnia.adres);
+        setWindowTitle(wypozyczalnia.getNazwa() + " - " + wypozyczalnia.getAdres());
     }
 
 private:
