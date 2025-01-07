@@ -210,8 +210,9 @@ public:
     QString adres;
 
     Wypozyczalnia(QString n, QString a) : nazwa(n), adres(a) {}
+    virtual ~Wypozyczalnia() = default;
 
-    void edytujWypozyczalnie() {
+    virtual void edytujWypozyczalnie() {
         QString newNazwa = QInputDialog::getText(nullptr, "Edytuj wypożyczalnię", "Nowa nazwa:", QLineEdit::Normal, nazwa);
         QString newAdres = QInputDialog::getText(nullptr, "Edytuj wypożyczalnię", "Nowy adres:", QLineEdit::Normal, adres);
         if (!newNazwa.isEmpty() && !newAdres.isEmpty()) {
