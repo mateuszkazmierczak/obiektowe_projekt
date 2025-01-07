@@ -18,3 +18,5 @@ To run program you have to:
     make
 4. Execute the program:
     ./QtProject
+
+   Code review: Good code, everyhting works as intended, keep it up!
