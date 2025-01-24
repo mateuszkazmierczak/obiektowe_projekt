@@ -1,0 +1,65 @@
+# Compiled object files, libraries, executables
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+*.exe
+*.a
+*.lib
+*.la
+*.lo
+
+# Qt Creator specific files
+*.pro.user
+*.pro.user.*
+*.qmake.stash
+*.pro.sublime-workspace
+
+# CMake build directories (if using CMake)
+CMakeLists.txt.user
+/build*/
+//out*/
+//dist*/
+/CMakeCache.txt
+CMakeFiles/
+
+# Qt Make build files
+Makefile
+*.moc
+moc_*
+ui_*
+qrc_*
+
+# VSCode settings (if using VSCode)
+.vscode/
+
+# Debugging files
+*.dSYM/
+*.pdb
+*.swp
+*.swo
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.ncb
+*.sdf
+*.sqlite
+
+# Qt generated files
+*.qrc
+*.rcc
+*.ts
+*.qm
+
+# Ignore auto-generated UI files
+ui_*.h
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+
+# Ignore database/cache files (if any)
+*.db
+*.sqlite
