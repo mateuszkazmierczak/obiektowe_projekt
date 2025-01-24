@@ -11,7 +11,8 @@ SOURCES += \
     Kierowca.cpp \
     Samochod.cpp \
     Wypozyczenie.cpp \
-    Wypozyczalnia.cpp
+    Wypozyczalnia.cpp \
+    RentalManager.cpp
 
 HEADERS += \
     MainWindow.h \
@@ -19,4 +20,5 @@ HEADERS += \
     Kierowca.h \
     Samochod.h \
     Wypozyczenie.h \
-    Wypozyczalnia.h
+    Wypozyczalnia.h \
+    RentalManager.h
