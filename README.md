@@ -1,4 +1,4 @@
-# Projekt na zajęcia z programowania obiektowego
+# Projekt na zajęcia z programowania obiektowego (PUT)
 
 
 Jan Czyżewski 160377
